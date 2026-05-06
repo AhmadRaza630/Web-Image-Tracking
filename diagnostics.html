@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Diagnostics - Web Image Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .check-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .check-item:last-child {
+            border-bottom: none;
+        }
+        
+        .icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        
+        .status-ok {
+            color: #4caf50;
+        }
+        
+        .status-warning {
+            color: #ff9800;
+        }
+        
+        .status-error {
+            color: #f44336;
+        }
+        
+        .status-pending {
+            color: #2196f3;
+        }
+        
+        .check-text {
+            flex: 1;
+        }
+        
+        .check-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .check-detail {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .code-block {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #ddd;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #ccc;
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #155724;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 System Diagnostics</h1>
+        
+        <!-- Status Overview -->
+        <div class="card">
+            <div class="card-title">📊 Setup Progress</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%">0%</div>
+            </div>
+            <div id="statusOverview"></div>
+        </div>
+        
+        <!-- Prerequisites -->
+        <div class="card">
+            <div class="card-title">✅ System Requirements</div>
+            <div id="requirements"></div>
+        </div>
+        
+        <!-- File Structure -->
+        <div class="card">
+            <div class="card-title">📁 Project Files</div>
+            <div id="fileStructure"></div>
+        </div>
+        
+        <!-- Setup Steps -->
+        <div class="card">
+            <div class="card-title">🚀 Setup Checklist</div>
+            <div id="setupSteps"></div>
+        </div>
+        
+        <!-- Next Steps -->
+        <div class="card">
+            <div class="card-title">📝 Next Steps</div>
+            <div id="nextSteps"></div>
+        </div>
+    </div>
+
+    <script>
+        // Check system capabilities
+        const checks = {
+            browser: {
+                label: 'Browser Compatibility',
+                check: () => {
+                    const ua = navigator.userAgent;
+                    return /Chrome|Firefox|Safari|Edge/.test(ua);
+                },
+                detail: () => navigator.userAgent.split('(')[1]?.split(')')[0] || 'Unknown'
+            },
+            camera: {
+                label: 'Camera Access',
+                check: () => navigator.mediaDevices?.getUserMedia !== undefined,
+                detail: () => 'WebRTC API available'
+            },
+            webgl: {
+                label: 'WebGL Support (3D Graphics)',
+                check: () => {
+                    const canvas = document.createElement('canvas');
+                    return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+                },
+                detail: () => 'Hardware acceleration ready'
+            },
+            localStorage: {
+                label: 'Local Storage',
+                check: () => typeof(Storage) !== 'undefined',
+                detail: () => 'Data persistence available'
+            }
+        };
+
+        // Files to check
+        const requiredFiles = [
+            { name: 'index.html', path: '/Web-Image-Tracking/', required: true },
+            { name: 'Model 1.glb', path: '/Web-Image-Tracking/Models/', required: true },
+            { name: 'Model 2.glb', path: '/Web-Image-Tracking/Models/', required: true },
+            { name: 'Tracker 1.png', path: '/Web-Image-Tracking/Tracker/', required: true },
+            { name: 'Tracker 2.png', path: '/Web-Image-Tracking/Tracker/', required: true },
+            { name: 'Tracker 1.patt', path: '/Web-Image-Tracking/Tracker/', required: false, note: '(To be generated)' },
+            { name: 'Tracker 2.patt', path: '/Web-Image-Tracking/Tracker/', required: false, note: '(To be generated)' }
+        ];
+
+        // Setup steps
+        const setupSteps = [
+            {
+                number: 1,
+                title: 'Generate Pattern Files',
+                description: 'Convert PNG markers to .patt files',
+                status: 'pending',
+                actions: [
+                    'Open: https://jeromeetienne.github.io/AR.js/three.js/examples/marker-training/examples/generator.html',
+                    'Upload Tracker 1.png and download Tracker 1.patt',
+                    'Upload Tracker 2.png and download Tracker 2.patt',
+                    'Save both .patt files to Tracker/ folder'
+                ]
+            },
+            {
+                number: 2,
+                title: 'Start Web Server',
+                description: 'Launch a local HTTP server',
+                status: 'pending',
+                actions: [
+                    'Run command: python3 -m http.server 8000',
+                    'Or: python -m SimpleHTTPServer 8000',
+                    'Or: npx http-server'
+                ]
+            },
+            {
+                number: 3,
+                title: 'Open Application',
+                description: 'Access the tracking system',
+                status: 'pending',
+                actions: [
+                    'Open browser: http://localhost:8000',
+                    'Allow camera access when prompted',
+                    'Print marker images on paper'
+                ]
+            },
+            {
+                number: 4,
+                title: 'Test Tracking',
+                description: 'Verify the system works',
+                status: 'pending',
+                actions: [
+                    'Point camera at Tracker 1.png',
+                    'Model 1 should appear and track',
+                    'Switch to Tracker 2.png',
+                    'Model 2 should appear'
+                ]
+            },
+            {
+                number: 5,
+                title: 'Enable Rotation',
+                description: 'Start 360-degree model rotation',
+                status: 'pending',
+                actions: [
+                    'Click "Start Rotation" button',
+                    'Model should rotate around vertical axis',
+                    'Adjust speed with slider if needed'
+                ]
+            }
+        ];
+
+        // Render requirements
+        function renderRequirements() {
+            const container = document.getElementById('requirements');
+            let html = '';
+            
+            for (const [key, check] of Object.entries(checks)) {
+                const result = check.check();
+                const icon = result ? '✓' : '✗';
+                const statusClass = result ? 'status-ok' : 'status-error';
+                
+                html += `
+                    <div class="check-item">
+                        <div class="icon ${statusClass}">${icon}</div>
+                        <div class="check-text">
+                            <div class="check-label">${check.label}</div>
+                            <div class="check-detail">${check.detail()}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Render file structure
+        function renderFiles() {
+            const container = document.getElementById('fileStructure');
+            let html = '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 0.9em;">';
+            
+            html += '<div>Web-Image-Tracking/</div>';
+            
+            for (const file of requiredFiles) {
+                const icon = file.required ? '📄' : '📋';
+                const status = file.required ? '(Required)' : file.note;
+                html += `<div style="margin-left: 20px;">${icon} ${file.name} ${status}</div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Render setup steps
+        function renderSteps() {
+            const container = document.getElementById('setupSteps');
+            let html = '';
+            
+            for (const step of setupSteps) {
+                html += `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; border-left: 4px solid #667eea;">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <span class="step-number">${step.number}</span>
+                            <div>
+                                <div style="font-weight: bold; color: #333;">${step.title}</div>
+                                <div style="font-size: 0.9em; color: #666;">${step.description}</div>
+                            </div>
+                        </div>
+                        <div style="margin-left: 40px;">
+                            ${step.actions.map(action => `<div style="margin: 5px 0; color: #555;">• ${action}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Render next steps
+        function renderNextSteps() {
+            const container = document.getElementById('nextSteps');
+            const html = `
+                <div class="warning-box">
+                    <strong>⚠️ Important:</strong> Before running the application, ensure:
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>.patt files are generated from PNG markers</li>
+                        <li>Web server is running on localhost:8000</li>
+                        <li>Browser has camera permission</li>
+                    </ul>
+                </div>
+                
+                <div class="success-box">
+                    <strong>✅ When Ready:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Basic Version:</strong> Open <a href="index.html">index.html</a></li>
+                        <li><strong>Advanced Version:</strong> Open <a href="index-advanced.html">index-advanced.html</a> (with debug tools)</li>
+                    </ul>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="location.href='index.html'">📍 Go to Basic Version</button>
+                    <button class="btn btn-primary" onclick="location.href='index-advanced.html'">🚀 Go to Advanced Version</button>
+                    <button class="btn btn-secondary" onclick="location.href='README.md'">📖 View Documentation</button>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // Calculate progress
+        function calculateProgress() {
+            let completed = 0;
+            const total = setupSteps.length + 3; // +3 for main requirements
+            
+            if (checks.browser.check()) completed++;
+            if (checks.camera.check()) completed++;
+            if (checks.webgl.check()) completed++;
+            
+            const percentage = Math.round((completed / total) * 100);
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBar').textContent = percentage + '%';
+        }
+
+        // Initialize
+        function init() {
+            renderRequirements();
+            renderFiles();
+            renderSteps();
+            renderNextSteps();
+            calculateProgress();
+        }
+
+        // Run on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
