@@ -1,50 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Tracker - Start Camera</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.5/aframe/aframe-ar.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3JS Image Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
             background: #000;
             color: #fff;
-            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
-        #arScene {
-            width: 100vw;
-            height: 100vh;
-            display: none;
-        }
-        .overlay {
+        #startButton {
             position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 100;
-            text-align: center;
-            padding: 30px;
-        }
-        .overlay h1 {
-            font-size: 28px;
-            margin-bottom: 18px;
-            color: #00ff00;
-        }
-        .overlay p {
-            margin-bottom: 20px;
-            font-size: 16px;
-            color: #ccc;
-        }
-        .start-button {
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
             padding: 16px 28px;
             font-size: 18px;
             font-weight: bold;
@@ -53,158 +28,143 @@
             border: none;
             border-radius: 10px;
             cursor: pointer;
+            z-index: 2;
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.35);
         }
-        .start-button:hover {
-            background: #a0ff00;
-        }
-        .status-bar {
+        #statusBox {
             position: absolute;
-            top: 14px;
-            left: 14px;
-            right: 14px;
-            z-index: 110;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.75);
             color: #00ff00;
-            font-size: 14px;
-        }
-        .status-box {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 12px;
+            padding: 10px 14px;
             border-radius: 8px;
             border: 1px solid #00ff00;
+            font-size: 14px;
+            z-index: 2;
         }
-        .hidden {
-            display: none !important;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
 <body>
-    <div class="overlay" id="startOverlay">
-        <div>
-            <h1>Start Image Tracking</h1>
-            <p>Click the button below to open camera. Then point the camera at Tracker 1.png or Tracker 2.png to see the model appear above the image.</p>
-            <button class="start-button" id="startButton">Open Camera</button>
-        </div>
-    </div>
-
-    <div class="status-bar hidden" id="statusBar">
-        <div class="status-box" id="statusModel">No tracker detected</div>
-        <div class="status-box" id="statusInfo">Camera closed</div>
-    </div>
-
-    <a-scene 
-        id="arScene"
-        embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_stereo; matrixCodeType: 3x3;"
-    >
-        <a-entity light="type: ambient; color: #ffffff; intensity: 0.8"></a-entity>
-        <a-entity light="type: directional; color: #ffffff; intensity: 0.7" position="0 1 1"></a-entity>
-
-        <a-marker 
-            id="marker1"
-            preset="custom" 
-            type="pattern" 
-            url="Tracker/Tracker%201.patt"
-            emitevents="true"
-            smooth="true"
-            smoothCount="10"
-        >
-            <a-entity
-                id="model1"
-                gltf-model="url(./Models/Model%201.glb)"
-                position="0 0 0"
-                rotation="0 0 0"
-                scale="1 1 1"
-            ></a-entity>
-        </a-marker>
-
-        <a-marker 
-            id="marker2"
-            preset="custom" 
-            type="pattern" 
-            url="Tracker/Tracker%202.patt"
-            emitevents="true"
-            smooth="true"
-            smoothCount="10"
-        >
-            <a-entity
-                id="model2"
-                gltf-model="url(./Models/Model%202.glb)"
-                position="0 0 0"
-                rotation="0 0 0"
-                scale="1 1 1"
-            ></a-entity>
-        </a-marker>
-
-        <a-entity camera></a-entity>
-    </a-scene>
+    <button id="startButton">Open Camera</button>
+    <div id="statusBox">Waiting to start</div>
 
     <script>
         const startButton = document.getElementById('startButton');
-        const startOverlay = document.getElementById('startOverlay');
-        const statusBar = document.getElementById('statusBar');
-        const statusModel = document.getElementById('statusModel');
-        const statusInfo = document.getElementById('statusInfo');
-        const arScene = document.getElementById('arScene');
+        const statusBox = document.getElementById('statusBox');
 
-        let currentModel = null;
+        let renderer, scene, camera, arToolkitSource, arToolkitContext;
+        let markerRoot1, markerRoot2;
+        let model1, model2;
 
-        function showStatus(message, modelName = null) {
-            statusInfo.textContent = message;
-            if (modelName) {
-                statusModel.textContent = modelName;
-            } else {
-                statusModel.textContent = 'No tracker detected';
+        function updateStatus(text) {
+            statusBox.textContent = text;
+        }
+
+        function initAR() {
+            startButton.style.display = 'none';
+            updateStatus('Opening camera...');
+
+            scene = new THREE.Scene();
+            camera = new THREE.Camera();
+            scene.add(camera);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setClearColor(new THREE.Color('black'), 0);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0px';
+            renderer.domElement.style.left = '0px';
+            document.body.appendChild(renderer.domElement);
+
+            const light1 = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light1);
+            const light2 = new THREE.DirectionalLight(0xffffff, 0.7);
+            light2.position.set(0, 1, 1).normalize();
+            scene.add(light2);
+
+            arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+            arToolkitSource.init(() => onResize());
+            window.addEventListener('resize', () => onResize());
+
+            arToolkitContext = new THREEx.ArToolkitContext({
+                cameraParametersUrl: 'https://cdn.jsdelivr.net/npm/ar.js@3.4.5/data/data/camera_para.dat',
+                detectionMode: 'mono',
+                matrixCodeType: '3x3',
+            });
+
+            arToolkitContext.init(() => {
+                camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                updateStatus('Camera ready. Scan a tracker.');
+            });
+
+            markerRoot1 = new THREE.Group();
+            scene.add(markerRoot1);
+            new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+                type: 'pattern',
+                patternUrl: 'Tracker/Tracker%201.patt',
+                changeMatrixMode: 'modelViewMatrix',
+            });
+
+            markerRoot2 = new THREE.Group();
+            scene.add(markerRoot2);
+            new THREEx.ArMarkerControls(arToolkitContext, markerRoot2, {
+                type: 'pattern',
+                patternUrl: 'Tracker/Tracker%202.patt',
+                changeMatrixMode: 'modelViewMatrix',
+            });
+
+            const loader = new THREE.GLTFLoader();
+            loader.load('Models/Model%201.glb', function (gltf) {
+                model1 = gltf.scene;
+                model1.scale.set(0.4, 0.4, 0.4);
+                markerRoot1.add(model1);
+            });
+            loader.load('Models/Model%202.glb', function (gltf) {
+                model2 = gltf.scene;
+                model2.scale.set(0.4, 0.4, 0.4);
+                markerRoot2.add(model2);
+            });
+
+            animate();
+        }
+
+        function onResize() {
+            arToolkitSource.onResizeElement();
+            arToolkitSource.copyElementSizeTo(renderer.domElement);
+            if (arToolkitContext.arController !== null) {
+                arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
             }
         }
 
-        function startAR() {
-            startOverlay.classList.add('hidden');
-            arScene.style.display = 'block';
-            statusBar.classList.remove('hidden');
-            showStatus('Camera opening...');
+        function updateAR() {
+            if (arToolkitSource.ready !== false) {
+                arToolkitContext.update(arToolkitSource.domElement);
 
-            const scene = document.querySelector('a-scene');
-            if (scene && scene.hasLoaded) {
-                scene.play();
-            } else if (scene) {
-                scene.addEventListener('loaded', () => scene.play());
+                if (markerRoot1.visible) {
+                    updateStatus('Tracker 1 detected - Model 1 visible');
+                    if (model1) model1.rotation.y += 0.02;
+                } else if (markerRoot2.visible) {
+                    updateStatus('Tracker 2 detected - Model 2 visible');
+                    if (model2) model2.rotation.y += 0.02;
+                } else {
+                    updateStatus('No tracker detected');
+                }
             }
         }
 
-        startButton.addEventListener('click', startAR);
+        function animate() {
+            requestAnimationFrame(animate);
+            updateAR();
+            renderer.render(scene, camera);
+        }
 
-        document.getElementById('marker1').addEventListener('markerFound', function() {
-            currentModel = document.getElementById('model1');
-            showStatus('Tracker 1 detected', 'Model 1 visible');
-        });
-
-        document.getElementById('marker1').addEventListener('markerLost', function() {
-            if (currentModel && currentModel.id === 'model1') {
-                currentModel = null;
-                showStatus('Tracker 1 lost');
-            }
-        });
-
-        document.getElementById('marker2').addEventListener('markerFound', function() {
-            currentModel = document.getElementById('model2');
-            showStatus('Tracker 2 detected', 'Model 2 visible');
-        });
-
-        document.getElementById('marker2').addEventListener('markerLost', function() {
-            if (currentModel && currentModel.id === 'model2') {
-                currentModel = null;
-                showStatus('Tracker 2 lost');
-            }
-        });
-
-        window.addEventListener('load', function() {
-            statusBar.classList.add('hidden');
-            arScene.style.display = 'none';
-        });
+        startButton.addEventListener('click', initAR);
     </script>
 </body>
 </html>
