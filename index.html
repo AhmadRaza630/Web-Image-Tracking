@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web-Based Image Tracking - 360 Model Viewer</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.5/aframe/aframe-ar.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #arScene {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 100;
+            max-width: 300px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 100;
+            border: 2px solid #00ff00;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .rotation-toggle {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .rotation-toggle:hover {
+            background: #00cc00;
+        }
+        
+        .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff00;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <a-scene 
+        id="arScene"
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_stereo; matrixCodeType: 3x3;"
+    >
+        <!-- Tracker 1 - Model 1 -->
+        <a-marker 
+            id="marker1"
+            preset="custom" 
+            type="pattern" 
+            url="Tracker/Tracker 1.patt"
+            emitevents="true"
+            smooth="true"
+            smoothCount="10"
+        >
+            <a-entity
+                id="model1"
+                gltf-model="url(./Models/Model%201.glb)"
+                position="0 0 0"
+                rotation="0 0 0"
+                scale="1 1 1"
+            ></a-entity>
+        </a-marker>
+
+        <!-- Tracker 2 - Model 2 -->
+        <a-marker 
+            id="marker2"
+            preset="custom" 
+            type="pattern" 
+            url="Tracker/Tracker 2.patt"
+            emitevents="true"
+            smooth="true"
+            smoothCount="10"
+        >
+            <a-entity
+                id="model2"
+                gltf-model="url(./Models/Model%202.glb)"
+                position="0 0 0"
+                rotation="0 0 0"
+                scale="1 1 1"
+            ></a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <div class="info-panel">
+        <div>🎯 Image Tracking System</div>
+        <div>Model 1: Tracker 1.png</div>
+        <div>Model 2: Tracker 2.png</div>
+        <div id="activeTracker">No tracker detected</div>
+    </div>
+
+    <div class="status">
+        <div>Status: <span id="statusText">Ready</span></div>
+    </div>
+
+    <div class="controls">
+        <p>🔄 Auto-Rotate Models</p>
+        <button class="rotation-toggle" id="toggleRotation">Start Rotation</button>
+        <p style="margin-top: 8px; font-size: 11px; color: #888;">Rotation applies to visible marker</p>
+    </div>
+
+    <script>
+        let isRotating = false;
+        let currentMarker = null;
+        let currentModel = null;
+        let rotationSpeed = 2; // degrees per frame
+
+        // Marker detection
+        document.getElementById('marker1').addEventListener('markerFound', function() {
+            currentMarker = 'marker1';
+            currentModel = document.getElementById('model1');
+            document.getElementById('activeTracker').textContent = 'Tracking: Marker 1 (Model 1)';
+            document.getElementById('statusText').textContent = 'Marker 1 Found ✓';
+        });
+
+        document.getElementById('marker1').addEventListener('markerLost', function() {
+            if (currentMarker === 'marker1') {
+                currentMarker = null;
+                currentModel = null;
+                document.getElementById('activeTracker').textContent = 'No tracker detected';
+                document.getElementById('statusText').textContent = 'Marker Lost';
+            }
+        });
+
+        document.getElementById('marker2').addEventListener('markerFound', function() {
+            currentMarker = 'marker2';
+            currentModel = document.getElementById('model2');
+            document.getElementById('activeTracker').textContent = 'Tracking: Marker 2 (Model 2)';
+            document.getElementById('statusText').textContent = 'Marker 2 Found ✓';
+        });
+
+        document.getElementById('marker2').addEventListener('markerLost', function() {
+            if (currentMarker === 'marker2') {
+                currentMarker = null;
+                currentModel = null;
+                document.getElementById('activeTracker').textContent = 'No tracker detected';
+                document.getElementById('statusText').textContent = 'Marker Lost';
+            }
+        });
+
+        // Rotation toggle
+        document.getElementById('toggleRotation').addEventListener('click', function() {
+            isRotating = !isRotating;
+            this.textContent = isRotating ? 'Stop Rotation' : 'Start Rotation';
+            this.style.background = isRotating ? '#ff6600' : '#00ff00';
+        });
+
+        // Animation loop for 360 rotation
+        function animateRotation() {
+            if (isRotating && currentModel) {
+                let rotation = currentModel.getAttribute('rotation');
+                rotation.y += rotationSpeed;
+                if (rotation.y >= 360) rotation.y = 0;
+                currentModel.setAttribute('rotation', rotation);
+            }
+            requestAnimationFrame(animateRotation);
+        }
+
+        animateRotation();
+
+        console.log('Image Tracking System Loaded');
+        console.log('Tracker 1 → Model 1');
+        console.log('Tracker 2 → Model 2');
+    </script>
+</body>
+</html>
